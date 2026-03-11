@@ -1,0 +1,5 @@
+cd /home/admin/Desktop/website
+chmod +x pgen.sh
+
+# Basic usage
+./pgen.sh -t router-language.trycloudflare.com -u https://mywebsite.com
